@@ -1,0 +1,60 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+IMAGE=${OMP_CONTAINER_IMAGE:-omp-container:latest}
+ENGINE=${CONTAINER_ENGINE:-}
+
+if [ -z "$ENGINE" ]; then
+    if command -v podman >/dev/null 2>&1; then ENGINE=podman
+    elif command -v docker >/dev/null 2>&1; then ENGINE=docker
+    else echo "Error: no container engine found; install Podman/Docker or set CONTAINER_ENGINE" >&2; exit 1
+    fi
+fi
+command -v "$ENGINE" >/dev/null 2>&1 || { echo "Error: container engine not found: $ENGINE" >&2; exit 1; }
+
+ROOT=${OMP_CONTAINER_HOME:-$HOME/.omp-container}
+STATE_DIR=$ROOT/state
+SECRETS_DIR=$ROOT/secrets
+WORKSPACE=${OMP_WORKSPACE:-$(pwd -P)}
+[ -d "$WORKSPACE" ] || { echo "Error: workspace path is not an existing directory: $WORKSPACE" >&2; exit 1; }
+mkdir -p "$STATE_DIR" "$SECRETS_DIR"
+chmod 700 "$ROOT" "$STATE_DIR" "$SECRETS_DIR"
+
+memory=${MEMORY_LIMIT:-4g}
+cpus=${CPU_LIMIT:-4}
+host_access=0
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --memory) [ "$#" -ge 2 ] || { echo "error: --memory requires a value" >&2; exit 2; }; memory=$2; shift 2 ;;
+        --cpus) [ "$#" -ge 2 ] || { echo "error: --cpus requires a value" >&2; exit 2; }; cpus=$2; shift 2 ;;
+        --host-access) host_access=1; shift ;;
+        *) break ;;
+    esac
+done
+
+reject_proxy() {
+    case "$1" in *://*@*) echo "error: proxy URLs with embedded credentials are not supported" >&2; exit 2;; esac
+}
+
+value=${HTTP_PROXY:-${http_proxy:-}}
+if [ -n "$value" ]; then reject_proxy "$value"; set -- --env "HTTP_PROXY=$value" --env "http_proxy=$value" "$@"; fi
+value=${HTTPS_PROXY:-${https_proxy:-}}
+if [ -n "$value" ]; then reject_proxy "$value"; set -- --env "HTTPS_PROXY=$value" --env "https_proxy=$value" "$@"; fi
+value=${NO_PROXY:-${no_proxy:-}}
+if [ -n "$value" ]; then set -- --env "NO_PROXY=$value" --env "no_proxy=$value" "$@"; fi
+
+if [ "$host_access" -eq 1 ]; then
+    echo "warning: host access is enabled; OMP can reach host services through the container gateway" >&2
+    case "$ENGINE" in podman|*/podman) set -- --add-host host.containers.internal:host-gateway "$@";;
+        *) set -- --add-host host.docker.internal:host-gateway "$@";; esac
+fi
+
+if [ -t 0 ]; then set -- -it "$@"; else set -- -i "$@"; fi
+case "$ENGINE" in podman|*/podman) set -- --userns=keep-id "$@";; esac
+
+exec "$ENGINE" run --rm --workdir /workspace --read-only \
+    --tmpfs /tmp:exec,size=512m,mode=1777 --cap-drop=ALL \
+    --security-opt=no-new-privileges --memory="$memory" --cpus="$cpus" \
+    -v "$STATE_DIR:/app/.omp:rw,Z" -v "$SECRETS_DIR:/run/secrets:ro,Z" \
+    -v "$WORKSPACE:/workspace:rw,Z" "$@" "$IMAGE"

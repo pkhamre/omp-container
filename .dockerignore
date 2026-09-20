@@ -1,0 +1,7 @@
+.git
+.gitignore
+README.md
+test_launcher.sh
+test_bootstrap.sh
+smoke_test.sh
+*.swp
