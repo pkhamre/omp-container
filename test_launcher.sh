@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-TEST_DIR=$(python3 -c 'import tempfile; print(tempfile.mkdtemp())')
+TEST_DIR=${TMPDIR:-/tmp}/omp-container-test.$$
+mkdir "$TEST_DIR"
 trap 'rm -rf "$TEST_DIR"' EXIT
 mkdir -p "$TEST_DIR/bin" "$TEST_DIR/home" "$TEST_DIR/workspace"
 cat > "$TEST_DIR/bin/podman" <<'EOF'

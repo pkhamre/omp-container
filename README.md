@@ -99,6 +99,31 @@ and it requires Bun `>=1.3.14`. The final image copies Bun, OMP's package,
 native modules, POSIX utilities, Git, and runtime libraries into a distroless
 Debian runtime. It intentionally contains no package manager, compiler, or
 Node.js.
+### Custom CA certificates
+
+Place an optional PEM bundle named `custom-ca.crt` at the build-context root
+and run `make build`. Each certificate is split, validated as an X.509
+certificate, installed into Debian's trust store, and retained in the final
+image. The bundle is installed before Bun downloads OMP, and
+`NPM_CONFIG_CAFILE` points build-time and runtime registry access at the
+generated system CA bundle.
+
+The file is read through a BuildKit bind mount and is not copied into an
+intermediate image layer as a source file. Invalid or non-PEM input fails the
+build.
+
+The final image includes Python 3, `python3-venv`, and Git. The runtime
+dependency collector also includes Python's standard library and Git's HTTP
+remote helpers so `python3 -m venv` and network Git operations work in the
+distroless image.
+
+If `git` on the host fails with an error such as
+`libpcre2-8.so.0: cannot open shared object file`, the host Git installation
+is missing its PCRE2 shared library; this occurs before the container starts.
+Install or reinstall the distribution package providing `libpcre2-8.so.0`
+(on Debian-based systems, typically `libpcre2-8-0`) and reinstall Git if
+needed. The image build explicitly installs that package and fails dependency
+collection when `ldd` reports a missing library.
 
 ## Security and limitations
 
