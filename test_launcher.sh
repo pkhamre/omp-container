@@ -5,6 +5,10 @@ TEST_DIR=${TMPDIR:-/tmp}/omp-container-test.$$
 mkdir "$TEST_DIR"
 trap 'rm -rf "$TEST_DIR"' EXIT
 mkdir -p "$TEST_DIR/bin" "$TEST_DIR/home" "$TEST_DIR/workspace"
+cat > "$TEST_DIR/home/.gitconfig" <<'EOF'
+[user]
+    name = Test User
+EOF
 cat > "$TEST_DIR/bin/podman" <<'EOF'
 #!/bin/sh
 printf '%s\n' "$@" > "$ARGS_FILE"
@@ -26,6 +30,7 @@ grep -Fx -- '--memory=2g' "$TEST_DIR/args"
 grep -Fx -- '--cpus=2' "$TEST_DIR/args"
 grep -Fx -- "$TEST_DIR/home/.omp-container/state:/app/.omp:rw,Z" "$TEST_DIR/args"
 grep -Fx -- "$TEST_DIR/home/.omp-container/secrets:/run/secrets:ro,Z" "$TEST_DIR/args"
+grep -Fx -- "$TEST_DIR/home/.gitconfig:/app/.gitconfig:ro,Z" "$TEST_DIR/args"
 grep -Fx -- "$TEST_DIR/workspace:/workspace:rw,Z" "$TEST_DIR/args"
 grep -Fx -- '--userns=keep-id' "$TEST_DIR/args"
 grep -Fx -- '-p' "$TEST_DIR/args"

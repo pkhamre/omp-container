@@ -22,7 +22,9 @@ The current directory is mounted read-write at `/workspace`. The wrapper works
 from any directory. Add `omp-container/bin` to `PATH`, or set
 `OMP_WORKSPACE=/path/to/project` to select another workspace. Set
 `CONTAINER_ENGINE=docker` or `CONTAINER_ENGINE=podman`; without it, Podman is
-preferred. Set `OMP_CONTAINER_IMAGE` to use another image tag.
+preferred. Set `OMP_CONTAINER_IMAGE` to use another image tag. If
+`~/.gitconfig` exists, it is mounted read-only at `/app/.gitconfig` so Git
+identity and other user Git settings are available in the container.
 
 ## State and secrets
 

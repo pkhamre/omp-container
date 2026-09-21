@@ -16,6 +16,7 @@ command -v "$ENGINE" >/dev/null 2>&1 || { echo "Error: container engine not foun
 ROOT=${OMP_CONTAINER_HOME:-$HOME/.omp-container}
 STATE_DIR=$ROOT/state
 SECRETS_DIR=$ROOT/secrets
+GITCONFIG=$HOME/.gitconfig
 WORKSPACE=${OMP_WORKSPACE:-$(pwd -P)}
 [ -d "$WORKSPACE" ] || { echo "Error: workspace path is not an existing directory: $WORKSPACE" >&2; exit 1; }
 mkdir -p "$STATE_DIR" "$SECRETS_DIR"
@@ -52,6 +53,7 @@ fi
 
 if [ -t 0 ]; then set -- -it "$@"; else set -- -i "$@"; fi
 case "$ENGINE" in podman|*/podman) set -- --userns=keep-id "$@";; esac
+[ -f "$GITCONFIG" ] && set -- -v "$GITCONFIG:/app/.gitconfig:ro,Z" "$@"
 
 exec "$ENGINE" run --rm --workdir /workspace --read-only \
     --tmpfs /tmp:exec,size=512m,mode=1777 --cap-drop=ALL \
