@@ -33,6 +33,7 @@ while [ "$#" -gt 0 ]; do
         *) break ;;
     esac
 done
+set -- "$IMAGE" "$@"
 
 reject_proxy() {
     case "$1" in *://*@*) echo "error: proxy URLs with embedded credentials are not supported" >&2; exit 2;; esac
@@ -59,4 +60,4 @@ exec "$ENGINE" run --rm --workdir /workspace --read-only \
     --tmpfs /tmp:exec,size=512m,mode=1777 --cap-drop=ALL \
     --security-opt=no-new-privileges --memory="$memory" --cpus="$cpus" \
     -v "$STATE_DIR:/app/.omp:rw,Z" -v "$SECRETS_DIR:/run/secrets:ro,Z" \
-    -v "$WORKSPACE:/workspace:rw,Z" "$@" "$IMAGE"
+    -v "$WORKSPACE:/workspace:rw,Z" "$@"

@@ -36,6 +36,9 @@ grep -Fx -- '--userns=keep-id' "$TEST_DIR/args"
 grep -Fx -- '-p' "$TEST_DIR/args"
 grep -Fx -- 'hello' "$TEST_DIR/args"
 grep -F -- 'host.containers.internal:host-gateway' "$TEST_DIR/args"
+image_line=$(awk '$0 == "omp-container:latest" { print NR; exit }' "$TEST_DIR/args")
+prompt_line=$(awk '$0 == "-p" { print NR; exit }' "$TEST_DIR/args")
+[ "$image_line" -lt "$prompt_line" ]
 if run_wrapper --memory >/dev/null 2>&1; then exit 1; fi
 if env HTTP_PROXY='http://user:pass@proxy.example:8080' HTTPS_PROXY= NO_PROXY= \
     ARGS_FILE="$TEST_DIR/args" HOME="$TEST_DIR/home" PATH="$TEST_DIR/bin:$PATH" \

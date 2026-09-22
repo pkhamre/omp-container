@@ -49,7 +49,7 @@ RUN --mount=type=bind,source=.,target=/build-context,ro \
         echo "custom-ca.crt does not contain a PEM X.509 certificate" >&2; \
         exit 1; \
       fi; \
-      update-ca-certificates; \
+      /usr/sbin/update-ca-certificates; \
     fi
 
 # Bun/npm use the generated Debian bundle for registry TLS.
